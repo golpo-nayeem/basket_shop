@@ -1,3 +1,5 @@
+const { object,string } = require('yup');
+
 const users =[];
 
 function getUsers(req, res) {
@@ -8,14 +10,36 @@ function createUsers(req, res) {
     const name = body.name;
     const email = body.email;
 
-    const user = users.find((x) => x.email === email);
+    const regesterSchema = object().shape({
+        email: string()
+            .email('This field should be a valid email address')
+            .required('This field must not be empty'),
+        
+        name: string()
+            .min(2,'This field must be at least 2 characters long')
+            .max(30,'This field must be at most 30 characters long')
+            .required('this field mist not be empty')
+    })
 
-    if(!user) {      
-        users.push(body);
-        return res.send(body);
-    } 
+    const promise = regesterSchema.validate({ email, name }, {abortEarly:false});
+    
+        promise.then(function () {
+            const user = users.find((x) => x.email === email);
 
-    res.send('user already exists!');
+            if(!user) {      
+                users.push(body);
+                return res.status(201).send(body);
+            } 
+        
+            res.send('user already exists!');
+        })
+        .catch(function (err) {
+            const errMessage = {path: err.inner[0].path, msg: err.inner[0].message};
+
+            res.status(400).send(errMessage);
+        })
+
+
 }
 function updateUsers(req, res) {
     const name = req.body.name;
